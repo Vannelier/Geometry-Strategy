@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { buildFlowField } from './FlowField'
+import { buildFlowField, GRID_W, GRID_H } from './FlowField'
 
 describe('buildFlowField', () => {
   it('returns Int8Array of length width * height * 2', () => {
     const field = buildFlowField(10, 10)
     expect(field).toBeInstanceOf(Int8Array)
-    expect(field.length).toBe(20 * 20 * 2)
+    expect(field.length).toBe(GRID_W * GRID_H * 2)
   })
 
   it('target cell (10,10) has zero direction', () => {
@@ -47,10 +47,10 @@ describe('buildFlowField', () => {
   it('all 400 cells are reachable (no zero vector except target)', () => {
     const field = buildFlowField(10, 10)
     let unreachable = 0
-    for (let y = 0; y < 20; y++) {
-      for (let x = 0; x < 20; x++) {
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
         if (x === 10 && y === 10) continue // target is expected zero
-        const i = (y * 20 + x) * 2
+        const i = (y * GRID_W + x) * 2
         if (field[i] === 0 && field[i + 1] === 0) unreachable++
       }
     }

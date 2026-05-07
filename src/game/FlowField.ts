@@ -1,12 +1,18 @@
 export const GRID_W = 20
 export const GRID_H = 20
 
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const
+
 export function buildFlowField(
   targetX: number,
   targetY: number,
   width = GRID_W,
   height = GRID_H,
 ): Int8Array {
+  if (targetX < 0 || targetX >= width || targetY < 0 || targetY >= height) {
+    throw new RangeError(`buildFlowField: target (${targetX}, ${targetY}) out of bounds (${width}x${height})`)
+  }
+
   const field = new Int8Array(width * height * 2)
   const visited = new Uint8Array(width * height)
 
@@ -17,8 +23,6 @@ export function buildFlowField(
   // Flat interleaved queue: [x0, y0, x1, y1, ...]
   const queue: number[] = [targetX, targetY]
   let qi = 0
-
-  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const
 
   while (qi < queue.length) {
     const cx = queue[qi++]
