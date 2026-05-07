@@ -2,11 +2,11 @@
 import { buildFlowField, GRID_W, GRID_H } from '../FlowField'
 
 const UNIT_COUNT = 50
-const SPEED = 2.0           // cells per second
-const DT = 1 / 60           // fixed timestep (~16.67ms)
-const TARGET_X = 10
-const TARGET_Y = 10
-const RESPAWN_DIST_SQ = 0.5 * 0.5  // squared threshold
+const SPEED = 2.0
+const DT = 1 / 60
+const TARGET_X = Math.floor(GRID_W / 2)
+const TARGET_Y = Math.floor(GRID_H / 2)
+const RESPAWN_DIST_SQ = 0.5 * 0.5
 
 const field = buildFlowField(TARGET_X, TARGET_Y)
 const positions = new Float32Array(UNIT_COUNT * 2)
@@ -20,34 +20,29 @@ function randomBorderPos(): [number, number] {
   return [GRID_W - 1, t]
 }
 
-// Initialize all units on the grid border
 for (let i = 0; i < UNIT_COUNT; i++) {
   const [x, y] = randomBorderPos()
   positions[i * 2] = x
   positions[i * 2 + 1] = y
 }
 
-function getFlowDir(x: number, y: number): [number, number] {
-  const cx = Math.min(Math.floor(x), GRID_W - 1)
-  const cy = Math.min(Math.floor(y), GRID_H - 1)
-  const i = (cy * GRID_W + cx) * 2
-  return [field[i], field[i + 1]]
-}
-
 function tick(): void {
   for (let i = 0; i < UNIT_COUNT; i++) {
     const x = positions[i * 2]
     const y = positions[i * 2 + 1]
-    const [dx, dy] = getFlowDir(x, y)
+
+    const cx = Math.min(Math.floor(x), GRID_W - 1)
+    const cy = Math.min(Math.floor(y), GRID_H - 1)
+    const fi = (cy * GRID_W + cx) * 2
+    const dx = field[fi]
+    const dy = field[fi + 1]
 
     let nx = x + dx * SPEED * DT
     let ny = y + dy * SPEED * DT
 
-    // Clamp to grid bounds
     nx = Math.max(0, Math.min(GRID_W - 0.01, nx))
     ny = Math.max(0, Math.min(GRID_H - 0.01, ny))
 
-    // Respawn on border if within 0.5 cells of target
     const ddx = nx - TARGET_X
     const ddy = ny - TARGET_Y
     if (ddx * ddx + ddy * ddy < RESPAWN_DIST_SQ) {
@@ -63,8 +58,14 @@ function tick(): void {
   self.postMessage({ type: 'SNAPSHOT', positions })
 }
 
+let intervalId: ReturnType<typeof setInterval> | null = null
+
 self.onmessage = (e: MessageEvent) => {
-  if (e.data.type === 'START') {
-    setInterval(tick, 16)
+  if (e.data.type === 'START' && intervalId === null) {
+    intervalId = setInterval(tick, Math.round(1000 / 60))
+  }
+  if (e.data.type === 'STOP' && intervalId !== null) {
+    clearInterval(intervalId)
+    intervalId = null
   }
 }
