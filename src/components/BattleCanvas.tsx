@@ -1,9 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { Application, Graphics } from 'pixi.js'
+import { GRID_W, GRID_H } from '../game/FlowField'
 
-const GRID_W = 20
-const GRID_H = 20
-const CELL_SIZE = 30        // pixels per grid cell → 600×600 canvas
+const CELL_SIZE = 30
 const UNIT_COUNT = 50
 const TARGET_X = 10
 const TARGET_Y = 10
@@ -15,6 +14,7 @@ export function BattleCanvas() {
     if (!containerRef.current) return
 
     let mounted = true
+    let initComplete = false
     const latestSnapshot = { current: null as Float32Array | null }
 
     const worker = new Worker(
@@ -42,16 +42,18 @@ export function BattleCanvas() {
         return
       }
 
-      containerRef.current!.appendChild(app.canvas)
+      initComplete = true
 
-      // Red square — static, added first so it renders behind units
+      if (!containerRef.current) return
+
+      containerRef.current.appendChild(app.canvas)
+
       const redSprite = new Graphics()
       redSprite.rect(-10, -10, 20, 20).fill(0xff3333)
       redSprite.x = TARGET_X * CELL_SIZE + CELL_SIZE / 2
       redSprite.y = TARGET_Y * CELL_SIZE + CELL_SIZE / 2
       app.stage.addChild(redSprite)
 
-      // 50 blue circles — created once, repositioned each frame
       const sprites: Graphics[] = []
       for (let i = 0; i < UNIT_COUNT; i++) {
         const g = new Graphics()
@@ -60,7 +62,6 @@ export function BattleCanvas() {
         sprites.push(g)
       }
 
-      // PixiJS ticker: read latest snapshot and update sprite positions
       app.ticker.add(() => {
         const snap = latestSnapshot.current
         if (!snap) return
@@ -76,7 +77,7 @@ export function BattleCanvas() {
     return () => {
       mounted = false
       worker.terminate()
-      app.destroy(true)
+      if (initComplete) app.destroy(true)
     }
   }, [])
 
